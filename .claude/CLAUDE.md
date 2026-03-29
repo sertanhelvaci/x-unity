@@ -1,4 +1,5 @@
 # MULTIVERSE RESTAURANT — Game Project Plan
+
 > Claude Code için kapsamlı proje rehberi. Bu dosyayı oku ve tüm kararları buna göre ver.
 
 ---
@@ -11,13 +12,28 @@
 **Ekip:** 2 kişi — 1 Programmer, 1 Artist
 **Tür:** Roguelike + Sıra Tabanlı Grid Combat + Shop Management
 
+### Karakterler
+
+| Kod Adı  | İsim       | Rol                                                       |
+| -------- | ---------- | --------------------------------------------------------- |
+| `PROTO`  | **Aldric** | Protagonist. Her şeyi görmüş, hiçbir şey onu şaşırtmıyor. |
+| `SPOUSE` | **Lena**   | Eş, sabit partner. Yanlış şeylere vicdan azabı çekiyor.   |
+| `RIVAL`  | **Dorian** | Rakip şef. Unvanını kaybetmemek için her şeyi yapıyor.    |
+| `POTUS`  | (TBD)      | ABD Başkanı. Adrenalinden geliyor, biz kurtarıyoruz.      |
+
+> Karakter detayları, diyalog tonu ve hikaye kararları için `.claude/DESIGN.md` dosyasını oku.
+
 ### Tek Cümle Pitch
+
 Gündüzleri başka evrenlerde topladığın malzemeleri restoranında satan, geceleri ise o evrenlerin tehlikeli bölgelerine grid tabanlı sıra sıra savaşarak giren bir multiverse roguelike.
 
 ### Referans Oyunlar
-- **Cult of the Lamb** → Kalıcılık modeli + üs büyüme hissi
-- **Into the Breach** → Grid combat: serbest hareket yok, satranç tahtası
-- **Slay the Spire** → Run içinde kart topla, karakter güçlendir
+
+- **Cult of the Lamb** → Kalıcılık modeli + üs büyüme hissi + ölüm/kayıp modeli
+- **Into the Breach** → Grid combat: pozisyon bazlı taktik
+- **Baldur's Gate 3** → Sıra tabanlı grid combat, kart = spell book mantığı (kalıcı, büyüyen), keşif modu (click to move serbest hareket)
+- **Hades** → Sabit oda yapısı (her run aynı 5 oda, değişen düşman kombinasyonları), level design odaklı
+- **Slay the Spire** → Kart kazanma tatmini
 - **Rick & Morty** → Yazarlık tonu: absürd, kara komedi, multiverse kaosunda sıradan insan
 
 ---
@@ -25,17 +41,19 @@ Gündüzleri başka evrenlerde topladığın malzemeleri restoranında satan, ge
 ## 2. PLATFORM STRATEJİSİ
 
 ### Yol Haritası
+
 ```
 AŞAMA 1          AŞAMA 2          AŞAMA 3
 ────────         ────────         ────────
 Steam            PS5              Xbox
 PC/Mac/Linux     Developer hesabı Developer hesabı
 Steamworks SDK   Sony sertifikasyon Microsoft sertifikasyon
-En az bürokratik                  
+En az bürokratik
 İlk gelir & feedback buradan gelir
 ```
 
 ### Platform Başvuru Gereksinimleri
+
 - **Steam:** Steamworks hesabı, $100 tek seferlik ücret. En hızlı yol.
 - **PS5:** PlayStation Partner hesabı, Sony'ye başvuru, sertifikasyon testi (TRC).
 - **Xbox:** ID@Xbox programı, Microsoft onayı, sertifikasyon testi (XR).
@@ -44,14 +62,15 @@ En az bürokratik
 > Sertifikasyon süreçleri aylarca sürebilir, erken başvurmak avantaj.
 
 ### Platform Başına Teknik Gereksinimler
-| Gereksinim | Steam | PS5 | Xbox |
-|---|---|---|---|
-| Controller desteği | Opsiyonel | Zorunlu | Zorunlu |
-| UI controller navigasyonu | Opsiyonel | Zorunlu | Zorunlu |
-| Cloud save | Steam Cloud | PS Cloud | Xbox Cloud |
-| Achievement sistemi | Steam Achievements | PS Trophies | Xbox Achievements |
-| Çözünürlük desteği | Esnek | 4K/60fps hedef | 4K/60fps hedef |
-| HDR | Opsiyonel | Bekleniyor | Bekleniyor |
+
+| Gereksinim                | Steam              | PS5            | Xbox              |
+| ------------------------- | ------------------ | -------------- | ----------------- |
+| Controller desteği        | Opsiyonel          | Zorunlu        | Zorunlu           |
+| UI controller navigasyonu | Opsiyonel          | Zorunlu        | Zorunlu           |
+| Cloud save                | Steam Cloud        | PS Cloud       | Xbox Cloud        |
+| Achievement sistemi       | Steam Achievements | PS Trophies    | Xbox Achievements |
+| Çözünürlük desteği        | Esnek              | 4K/60fps hedef | 4K/60fps hedef    |
+| HDR                       | Opsiyonel          | Bekleniyor     | Bekleniyor        |
 
 ---
 
@@ -69,6 +88,10 @@ Her şey Unity'nin **New Input System** paketi üzerinden gidecek.
 // Editörde oluşturulacak, kod generate edilecek
 
 // PlayerInputActions (auto-generated)
+// ├── Exploration
+// │   ├── Move            (Mouse: Click to move / Controller: Sol Analog)
+// │   ├── Interact        (Mouse: Click / Controller: A butonu)
+// │   └── Cancel          (Keyboard: Esc / Controller: B butonu)
 // ├── Combat
 // │   ├── SelectCell      (Mouse: Click / Controller: A butonu)
 // │   ├── CancelSelection (Mouse: RightClick / Controller: B butonu)
@@ -274,36 +297,46 @@ public static class SaveSystem
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                       GÜNLÜK DÖNGÜ                           │
+│                    GÜNLÜK DÖNGÜ (1 gün = 1 run + 1 gündüz)  │
 │                                                              │
-│   DAY PHASE                    NIGHT PHASE                   │
-│   ──────────                   ────────────                  │
-│   Restoran aç                  Evrene ışınlan                │
-│   Yemek sat → PARA KAZAN   ◄── Grid combat, oda oda ilerle   │
-│   Restoran genişlet            Düşman öldür → KART KAZAN     │
-│   Dekorasyon al                Loot topla → KART / MALZEME   │
-│   NPC'lerle diyalog            Öldün? Malzeme + kartlar kal  │
-│   Yeni evren seç               Boss yendim? Evren temizlendi  │
+│   GÜNDÜZ PHASE                 GECE PHASE                    │
+│   ────────────                 ───────────                   │
+│   Restoran aç                  Depo odasından portal aç      │
+│   Yemek yap & sat → PARA   ◄── Evrene ışınlan               │
+│   Restoran genişlet            5 oda: keşif + grid combat    │
+│   Dekorasyon al                Savaş dışı: BG3 serbest hrkт │
+│   Yemek buff'ı hazırla         Savaşta: grid sıra tabanlı   │
+│   NPC'lerle diyalog            Düşman öldür → KART KAZAN     │
+│   Yeni evren seç               Loot topla → MALZEME          │
+│                                Boss yendim? → Tüm loot al    │
+│                                Öldüm? → %50 malzeme kayıp    │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Para Döngüsü
+### Para & Güçlenme Döngüsü
+
 ```
-GECE                    GÜNDÜZ                  TEKRAR GECEYE
-─────                   ──────                  ──────────────
-Malzeme topla    →      Yemek yap & sat    →    Daha iyi ekipman
-                        Para kazan              Daha büyük restoran
-                        Restoran geliştir       Daha fazla müşteri
-                        Dekorasyon al           Daha fazla para
+GECE                          GÜNDÜZ                    TEKRAR GECEYE
+─────                         ──────                    ──────────────
+Kart kazan (spell book)  →    Malzemeyle yemek yap →    Daha iyi kartlar
+Malzeme topla            →    Sat → para kazan     →    Yemek buff'larıyla gir
+                              Restoran geliştir         Daha büyük restoran
+                              Dekorasyon al             Daha fazla müşteri
+                              Buff yemek hazırla        Daha fazla para
+
+Güçlenme 1: Kartlar (evrenden) — BG3 spell book, kalıcı
+Güçlenme 2: Yemek buff'ları (restorandan) — geçici, run başı
+Ayrı level/skill tree YOK.
 ```
 
 ### Kalıcılık Modeli
+
 ```
 KALICI — Hiç silinmez                  RUN DATA — Gece bitince sıfır
 ──────────────────────                 ──────────────────────────────
 Restoran seviyesi & upgrades           Şu anki oda index'i
 Restoran dekorasyonu & genişleme       Karakterlerin mevcut HP'si
-Açılmış karakterler                    Bu geceye ait geçici buflar
+Açılmış karakterler                    Bu geceye ait yemek buff'ları
 Kazanılmış kartlar (karakter bazlı)    Oda içi henüz toplanmamış loot
 Toplam malzeme envanteri
 Para / currency
@@ -311,70 +344,248 @@ Hangi evrenler boss'u temizlendi
 Açık menü tarifleri
 ```
 
+### Ölüm & Respawn
+
+- Restoranda yapay zeka var — karakterleri anlık yedekliyor
+- Ölünce yapay zeka restoranda geri ışınlıyor (klon ama anılar/beyin kaldığı yerden)
+- Malzemelerin **%50'si** kurtarılır, geri kalanı kayıp
+- Boss'u yenersen **tüm kazançları** götürürsün
+- Ölünce gündüz oluyor — run bitti, restoran işletmeye başla
+- Ertesi gece **1. odadan** başla (roguelike klasiği)
+
+### Evren Yapısı
+
+- Her evren **5 sabit oda** — Hades modeli, her run aynı sıra
+- Oda tipleri: savaş, keşif/diyalog, boss — **evren bazında custom sıralama**
+- `UniverseData` ScriptableObject'inde oda tipi ve sırası editörden ayarlanır
+- Odalar sabit ama düşman kombinasyonları, loot dropları, diyalog satırları değişir
+- İlk evren: **Cyberpunk "Neon Altı"**
+- Evren seçimi **hikaye sıralı** — mevcut evreni bitirmeden (boss yenmeden) sonraki açılmaz
+
+### Kamera Sistemi
+
+- **Keşif modu:** Karaktere yakın, atmosferik. 2.5D izometrik.
+- **Savaş modu:** Kamera yukarı çeker, taktik görüş. Grid tamamı görünür.
+- **Restoran:** Keşif kamerası ile aynı — yakın, 2.5D izometrik.
+- **Geçiş:** Smooth lerp — savaş tetiklenince kamera yavaşça yukarı çeker, bitince geri.
+
+> **Claude Code Notu:** `CameraController` iki mod destekler: `CameraMode.Exploration` ve `CameraMode.Combat`. Geçiş smooth.
+
+### Grid Sistemi — Otomatik Oluşturma
+
+- Grid boyutu **odaya göre değişir** — sabit 8x6 değil
+- Sistem mevcut haritayı **otomatik tarar**: yükseklik, engeller, duvarlar
+- Belirli yükseklikten büyük alanlar otomatik engel/disabled grid olur
+- Level designer sadece odayı tasarlar, grid kendini şekillendirir
+- `GridManager` artık `width/height` parametresi almak yerine sahneyi analiz eder
+
+> **Claude Code Notu:** `GridManager.InitializeGrid()` yerine `GridManager.ScanAndBuildGrid()` — raycast veya collider tabanlı harita tarama. `GridCell.IsWalkable` otomatik belirlenir.
+
+### Savaş Geçişi — Aynı Mekân (BG3 modeli)
+
+- Savaş tetiklenince sahne DEĞİŞMİYOR — aynı mekânda mod switch
+- Kamera yukarı çeker, grid overlay belirir, sıra tabanlı başlar
+- Savaş bitince grid kaybolur, kamera yakınlaşır, keşfe devam
+- Ayrı savaş sahnesi / yükleme ekranı YOK
+
+### Savaş Mekanikleri
+
+**Initiative (Tur Sırası):**
+- Her savaş başında her karakter için **zar atılır** (D&D/BG3 initiative)
+- En yüksek zar önce oynar
+- Aldric'e **initiative buff** — genelde 1. veya 2. sırada
+- `CharacterData`'ya `initiativeBonus` alanı ekle
+
+**Hareket & Aksiyon Ayrımı (BG3 modeli):**
+- Hareket **bedava** — `moveRange` kadar yürü, aksiyon puanı harcamaz
+- Aksiyon puanı (2) **sadece kart oynamak** için
+- Bir turda hem yürü hem 2 kart oyna
+
+**Düşman Arketipleri (her evrende):**
+- Yakın mesafe saldırgan — sana koşar, vurur
+- Uzak mesafe — uzaktan ateş, kaçar
+- Tank/kalkan — yavaş, dayanıklı, arkadakileri koruyor
+- Tema evrene göre değişir
+
+### Keşif Modu
+
+- Aldric **ana kontrol** — oyuncu sadece Aldric'i yönetir
+- Yardımcı karakterler (Lena + diğerleri) **otomatik takip**
+- Savaşta her karakteri **sırayla kontrol** et
+- **Mouse/Keyboard:** Tıkla → yürü → varınca etkileşim menüsü
+- **Gamepad:** Sol analog ile yürü → menzilde prompt → A bas
+- Input Action Map: `Exploration` (serbest hareket) + `Combat` (grid) + `UI`
+
 ---
 
 ## 5. RESTORAN SİSTEMİ (GÜNDÜZ PHASE)
 
-### 5.1 Yemek Satış → Para Döngüsü
+### 5.1 Yemek Pişirme Mekanığı — Timing Mini-Game
 
 ```
-MALZEMELERİ ENVANTERİNDEN SEÇ
-         │
-         ▼
-TARİFE UYAN KOMBİNASYON?
-   Evet → Yemek oluşur, fiyatı hesaplanır
-   Hayır → "Gizemli Çorba" olarak satılır (düşük fiyat)
-         │
-         ▼
-SATIŞ → PARA KAZANILDI → GENIŞLE / DEKORE ET
+TARİF SEÇ → TIMING OYUNU → SONUÇ
+═══════════════════════════════════
+
+Basit tarif: 3 timing check
+Zor tarif:   5 timing check
+
+Her timing: bar ilerliyor, doğru alanda bas
+Başarılı → ★ kazanırsın
+Kaçırdın → yıldız düşer
+
+Sonuç:
+5/5 ★ → mükemmel yemek, müşteri çok memnun, yüksek fiyat
+3/5 ★ → orta yemek, normal fiyat
+0/5 ★ → yemek çöp, malzeme boşa gitti
 ```
 
-### 5.2 Restoran Genişleme
+> **Claude Code Notu:** `CookingMinigame` sistemi: tarif zorluğuna göre timing sayısı, `RecipeData`'da `timingCount` alanı.
+
+### 5.2 Restoran Evrimi — Aşçıdan Patrona
 
 ```
-SEVİYE 1              SEVİYE 2                SEVİYE 3
-─────────             ─────────               ─────────
-4 masa                8 masa                  16 masa
-Küçük mutfak          Büyük mutfak            Profesyonel mutfak
-                      Outdoor alan            2. kat
+SEVİYE 1 — AŞÇI MODU (Başlangıç)
+══════════════════════════════════
+Aldric pişiriyor (timing mini-game), Lena servis yapıyor
+Az müşteri, az tarif
+Oyuncu her şeyi kendisi yapıyor
+4 masa, küçük mutfak
+
+SEVİYE 2 — HİBRİT
+══════════════════
+Çalışanlar alıyorsun — aşçı, garson
+Çalışanlar basit tarifleri hallediyor (otomatik)
+Sen sadece zor/özel tarifleri yapıyorsun
+Artan boş zamanında NPC diyalogları başlıyor
+8 masa, büyük mutfak, outdoor alan
+
+SEVİYE 3 — PATRON MODU
+═══════════════════════
+Mutfağa girmiyorsun, çalışanlar yapıyor
+Kavgalar, müşteri şikayetleri, Başkan ziyareti
+Hikaye restoran diyaloglarından taşınıyor
+Menü/personel/strateji kararları
+16 masa, profesyonel mutfak, 2. kat
 ```
 
-### 5.3 Dekorasyon Sistemi
+> **Tasarım notu:** Mekanik yük azaldıkça hikaye yükü artıyor. Gündüz phase asla sıkmaz.
+
+### 5.3 Yemek Buff Sistemi
+
+Restoranda hazırlanan yemekler savaş öncesi geçici buff verir. Tarife + malzemeye bağlı.
+
+```
+YEMEK BUFF ÖRNEKLERİ (detaylar TBD)
+─────────────────────────────────────
+"Ejderha Biftek"   → bu gece +2 HP
+"Neon Ramen"       → bu gece +1 aksiyon puanı
+"Goblin Fermente"  → bu gece +1 hareket menzili
+```
+
+> **Claude Code Notu:** `RecipeData`'ya buff alanları ekle. Buff sistemi portal geçiş ekranında seçilir, run başında uygulanır, run sonunda sıfırlanır.
+
+### 5.4 Dekorasyon Sistemi
+
 Salt görsel — mekanik etkisi yok. Slot tipleri: Duvar, Zemin, Masa Üstü, Köşe, Dış Cephe.
 Her evrenin exclusive dekorasyonları var — boss yenince açılır.
 
-### 5.4 Müşteri NPC Diyalogları
+### 5.5 Müşteri NPC Diyalogları
+
 Gündüz phase'inde tetiklenir. Rick & Morty tonu. İlk ziyaret / memnun / memnun değil diyalogları.
+Restoran büyüdükçe daha önemli NPC'ler gelir — Başkan dahil. Hikaye burada derinleşir.
+
+### 5.6 Depo Odası & Yapay Zeka
+
+Restoranda arka tarafta depo odası var:
+- Multiverse cihazı burada çalışıyor (portal açma)
+- Yapay zeka burada — klonlama/yedekleme sistemi
+- Restoran upgrade'leri yapay zeka üzerinden yapılır
+- İlerlemeye göre kilitler açılır (Diablo 4 / Cult of the Lamb kademeli açılma)
+
+### 5.7 Envanter Erişimi
+
+- **Malzemeler, tarifler, dekorasyonlar:** Sadece restoranda erişilebilir
+- **Kart deck düzenleme + buff seçimi:** Portal geçişinde tek ekranda
 
 ---
 
 ## 6. KART SİSTEMİ & KARAKTER GELİŞİMİ
 
 ### Kart Kazanma
+
 - Düşman öldürünce %40 drop şansı
 - Loot odalarında garanti 3 seçenek, 1 tanesini seç
 - Kazanılan kartlar **kalıcı** — ölünce silinmez
 
-### Kart Tipleri
-| Tip | Açıklama |
-|---|---|
-| Temel | Başlangıç kartları |
-| Nadir | Run içinde kazanılan |
-| Evren Kartı | Sadece o evrende drop olur |
-| Pasif | Savaş başında otomatik aktif |
+### Kart Havuzu & Deck Sistemi
 
-### Karakter Gelişim Ağacı (⚠️ Henüz Detaylandırılmadı)
-> **Claude Code Notu:** `CharacterData`'ya stub bırak, implemente etme.
+- Kart havuzu **ortak** — drop olan kart herhangi bir karaktere verilebilir
+- Kartlarda **sınıf kısıtlaması** var — bazı kartlar sadece belirli karakterler kullanabilir
+- Kart üzerine gelinince hangi sınıflar kullanabileceğini gösterir
+- Kullanamayacak karaktere verilirse uyarı: "Aldric bunu kullanamaz"
+- Ortak kartlar da var — herkes kullanabilir
+- Her karakter için **maksimum 6 kart** aktif deck'te
+- Son deck konfigürasyonu otomatik önerilir (her gece sıfırdan seçme yok)
+- Deck düzenleme + buff seçimi portal geçişinde **tek ekranda** yapılır
+
+### Kart Cooldown
+
+- Her kartın **tur bazlı cooldown'u** var
+- Bazı kartlar her tur oynanabilir (cooldown: 0)
+- Güçlü kartlar 3-4 turda bir oynanabilir
+- `CardData`'ya `cooldownTurns` alanı ekle
+
+### Kart Tipleri
+
+| Tip         | Açıklama                     |
+| ----------- | ---------------------------- |
+| Temel       | Başlangıç kartları           |
+| Nadir       | Run içinde kazanılan         |
+| Evren Kartı | Sadece o evrende drop olur   |
+| Pasif       | Savaş başında otomatik aktif |
+
+### Karakter Savaş Rolleri
+
+| Karakter | Rol                   | Pozisyon        | Açıklama                                              |
+| -------- | --------------------- | --------------- | ----------------------------------------------------- |
+| Aldric   | Yakın mesafe brawler  | Ön cephe        | Düşmana yapışır, yüksek hasar verir                   |
+| Lena     | Şifacı + Nişancı     | Arka destek     | Uzaktan hasar + iyileştirme. Korunması lazım.         |
+
+> **Tasarım notu:** Pozisyon hatası yaparsan Lena'ya düşman ulaşır — gerilim buradan gelir. Into the Breach / BG3 taktik hissi.
+
+### Karakter Gelişim Sistemi
+
+> **Ayrı level/skill tree YOK.** Güçlenme iki kaynaktan gelir:
+> 1. **Kartlar** — BG3 spell book. Evrenden kazanılır, kalıcı. Deck büyüdükçe seçenek artar.
+> 2. **Yemek buff'ları** — Restorandan. Geçici, run başı. Restoran geliştikçe daha güçlü buff'lar.
+>
+> **Claude Code Notu:** `CharacterData`'da level/XP/skill tree alanı YAPMA. Kart deck'i ve yemek buff'ları yeterli.
 
 ---
 
-## 7. SAVAŞ EKİBİ (⚠️ Karar Verilmedi)
+## 7. SAVAŞ EKİBİ
+
 Mimari **2-4 karakter** destekler. `List<PlayerUnit>` kullan, hardcode etme.
-**Öneri:** İlk prototipte 3 karakterle başla.
+
+### Sabit Kadro
+
+- **Aldric** (`PROTO`) — Baştan itibaren her zaman ekipte.
+- **Lena** (`SPOUSE`) — Baştan itibaren her zaman ekipte. Aldric'in partneri.
+
+### Dinamik Kadro
+
+Run içinde ve hikaye ilerledikçe geçici veya kalıcı karakterler eklenir.
+
+- **Başkan** (`POTUS`) — Geçici. Belirli evrenlerde katılır, 6-7 evren boyunca zaman zaman görünür.
+- Evrenlerden devşirilen diğer karakterler — `[TBD hikayeye göre]`
+
+> **Claude Code Notu:** `TurnManager` ve `CombatManager` her zaman `List<PlayerUnit>` ile çalışır.
+> Aldric ve Lena özel cased değil — aynı `PlayerUnit` sistemini kullanır.
 
 ---
 
 ## 8. MULTİPLAYER STRATEJİSİ
+
 Single-player, ama co-op mimarisi hazır. `IPlayerController` interface'i şimdiden var.
 
 ---
@@ -984,6 +1195,7 @@ public enum DecorationSlotType { Wall, Floor, TableTop, Corner, Exterior }
 ## 12. GELİŞTİRME AŞAMALARI (ROADMAP)
 
 ### Faz 0 — Proje Kurulumu (1 Hafta)
+
 - [ ] Unity 6 LTS + URP kurulumu
 - [ ] **New Input System** paketini kur ve `.inputactions` asset'ini oluştur
 - [ ] Klasör yapısını kur
@@ -994,6 +1206,7 @@ public enum DecorationSlotType { Wall, Floor, TableTop, Corner, Exterior }
 - [ ] Git repo kur — `main` / `develop` branch
 
 ### Faz 1 — Grid Combat Core (6-8 Hafta)
+
 - [ ] GridManager + GridCell + GridVisualizer
 - [ ] CharacterBase + PlayerUnit + EnemyUnit
 - [ ] LocalPlayerController (**New Input System** ile)
@@ -1004,22 +1217,26 @@ public enum DecorationSlotType { Wall, Floor, TableTop, Corner, Exterior }
 - [ ] **MILESTONE:** Controller ve mouse/keyboard ile combat çalışıyor
 
 ### Faz 2 — Kart Kazanma (2-3 Hafta)
+
 - [ ] CardRewardSystem + CardRewardUI (controller navigasyonlu)
 - [ ] CardRegistry
 - [ ] **MILESTONE:** Düşman öldür → kart seç → bir sonraki oda
 
 ### Faz 3 — Combat Polish (3-4 Hafta)
+
 - [ ] AoE hedefleme, buff/debuff
 - [ ] Animasyon + VFX
 - [ ] **MILESTONE:** Bir oda başından sonuna polish'li
 
 ### Faz 4 — Run Loop (4-5 Hafta)
+
 - [ ] RunManager + RoomGenerator
 - [ ] Ölünce kalıcılık
 - [ ] Boss odası
 - [ ] **MILESTONE:** 3 odalı evren tamamlanabiliyor
 
 ### Faz 5 — Restoran & Gündüz (4-6 Hafta)
+
 - [ ] RestaurantManager (genişleme)
 - [ ] DecorationManager + DecorationUI (controller navigasyonlu)
 - [ ] RecipeSystem + ShopManager
@@ -1028,11 +1245,13 @@ public enum DecorationSlotType { Wall, Floor, TableTop, Corner, Exterior }
 - [ ] **MILESTONE:** Tam döngü çalışıyor, restoran büyüyor
 
 ### Faz 6 — Narrative (Paralel)
+
 - [ ] DialogueManager + DialogueUI
 - [ ] İlk 3 evren diyalogu
 - [ ] Müşteri NPC diyalogları
 
 ### Faz 7 — Steam Çıkışı Hazırlığı
+
 - [ ] SteamPlatformService (Steamworks.NET entegrasyonu)
 - [ ] Steam Achievements
 - [ ] Steam Cloud Save
@@ -1041,6 +1260,7 @@ public enum DecorationSlotType { Wall, Floor, TableTop, Corner, Exterior }
 - [ ] SaveSystem cloud entegrasyonu
 
 ### Faz 8 — Konsol Port Hazırlığı (Steam sonrası)
+
 - [ ] PSPlatformService (PS5 SDK)
 - [ ] XboxPlatformService (GDK)
 - [ ] PS Trophies / Xbox Achievements
@@ -1053,6 +1273,7 @@ public enum DecorationSlotType { Wall, Floor, TableTop, Corner, Exterior }
 ## 13. SYNTY ASSET KULLANIM KURALLARI
 
 **Eş İçin Kurallar:**
+
 1. `Synty/` klasörüne dokunma. `_Game/Prefabs/` altına kopyala.
 2. Her restoran seviyesi için ayrı prefab.
 3. Her evren için ayrı atmosfer: skybox, ışık rengi, tile paleti.
@@ -1060,14 +1281,14 @@ public enum DecorationSlotType { Wall, Floor, TableTop, Corner, Exterior }
 5. **Kamera:** xRotation 45°, yRotation 45° — 2.5D izometrik.
 6. **UI:** Canvas Scaler → Scale With Screen Size → 1920x1080 referans. 4K ve 1080p otomatik scale eder.
 
-| Kullanım | Synty Paketi |
-|---|---|
-| Restoran iç mekan | Polygon Modular Fantasy Interior |
-| Fantezi evren | Polygon Fantasy Kingdom |
-| Uzay / Sci-Fi evren | Polygon Sci-Fi Space |
-| Western evren | Polygon Western |
-| Cehennem / Dungeon | Polygon Dungeon |
-| Modern şehir evren | Polygon City |
+| Kullanım                 | Synty Paketi                            |
+| ------------------------ | --------------------------------------- |
+| Restoran iç mekan        | Polygon Modular Fantasy Interior        |
+| Cyberpunk evreni         | Polygon City + Sci-Fi iç mekan          |
+| Fantezi / Dungeon evreni | Polygon Dungeon + Fantasy Kingdom       |
+| Sci-Fi evreni            | Polygon Sci-Fi Space                    |
+| Apocalypse evreni        | Polygon Apocalypse / Wasteland          |
+| Goblin evreni            | Polygon Sci-Fi Space + Fantasy karışımı |
 
 ---
 
@@ -1091,15 +1312,40 @@ public enum DecorationSlotType { Wall, Floor, TableTop, Corner, Exterior }
 - **Unity 6 LTS + URP**
 - **New Input System zorunlu** — eski Input API yasak
 - **IPlatformService** — Steam/PS/Xbox direkt çağrısı yok, interface üzerinden
-- **Referanslar:** Cult of the Lamb, Into the Breach, Slay the Spire, Rick & Morty tonu
-- **Ekip boyutu karar verilmedi** — `List<CharacterBase>`, hardcode etme
+- **Referanslar:** Cult of the Lamb, Into the Breach, Baldur's Gate 3 (combat + spell book modeli), Slay the Spire, Rick & Morty tonu
+- **Kart felsefesi:** BG3 spell book mantığı — kartlar kalıcı, deck büyüyor ama aksiyon puanı sınırlı. Gerilim kartlardan değil encounter tasarımından gelir.
+- **Karakterler:** Aldric (`PROTO`) + Lena (`SPOUSE`) sabit. Diğerleri `List<PlayerUnit>` ile dinamik.
 - **Co-op hazır mimari** — `IPlayerController` interface'i her zaman
 - **Kartlar kalıcı** — `CardDeck`, run sonunda silinmez
-- **Karakter gelişim ağacı** — stub bırak
+- **Karakter gelişim:** Level/skill tree YOK. Güçlenme = kartlar + yemek buff. `CharacterData`'da XP/level alanı yapma.
+- **Savaş rolleri:** Aldric = yakın mesafe brawler, Lena = şifacı + uzak mesafe nişancı
+- **Evren yapısı:** 5 sabit oda (Hades modeli), oda sırası evren bazında custom, `UniverseData`'da editörden ayarlanır
+- **İki mod:** Keşif (BG3 serbest hareket, click to move) + Combat (grid sıra tabanlı). Aynı mekânda geçiş, sahne değişmez.
+- **Kamera:** Keşif = yakın/atmosferik. Savaş = uzak/taktik. Smooth geçiş. Restoran = keşif kamerası.
+- **Grid:** Otomatik oluşturma — haritayı tarar, engeller/yükseklik otomatik tespit. Boyut odaya göre değişir.
+- **Initiative:** Zar sistemi (D&D/BG3). Aldric'e buff. `CharacterData.initiativeBonus`
+- **Hareket:** Bedava (moveRange). Aksiyon puanı sadece kart oynamak için.
+- **Kart deck:** Ortak havuz, sınıf kısıtlaması var. Karakter başına maks 6 aktif kart. Cooldown sistemi.
+- **Portal ekranı:** Tek ekranda deck düzenleme + buff seçimi + onayla.
+- **Yemek pişirme:** Timing mini-game (Cult of the Lamb). Basit 3, zor 5 timing. Hata = yıldız düşer.
+- **Restoran evrimi:** Aşçıdan patrona. Başta kendin pişir, büyüdükçe çalışan al, sonra yönet + hikaye.
+- **Ölüm:** Yapay zeka klonlama, %50 malzeme kaybı, 1. odadan başla. Boss yenersen tüm loot
+- **Depo odası:** Portal cihazı + yapay zeka + upgrade'ler burada
+- **Envanter:** Malzeme/tarif/dekorasyon sadece restoranda. Kart deck portal ekranında.
 - **UI:** controller navigasyonu her menüde, EventSystem kullan
 - **Canvas:** Scale With Screen Size, 1920x1080 referans
 - Kod açıklamalarını **Türkçe** yaz
+- **Evrenler:** Cyberpunk, Fantezi/Dungeon, Sci-Fi, Apocalypse, Goblin — detaylar DESIGN.md'de
+- **Ton:** Diyalog yazarken Aldric kısa/alaycı, Lena uzun/vicdan azabı çeken. Detay için DESIGN.md oku.
+
+## 16. TASARIM BİBLE
+
+- Hikaye, karakter, evren ve ton kararları için `.claude/DESIGN.md` dosyasını oku.
+- Kod kararlarında "bu hikayeyle uyumlu mu?" sorusunu bu dosyaya bakarak cevapla.
+- **Karakter adları:** Aldric, Lena, Dorian — kod içinde string olarak bu isimler kullanılır.
+- **Diyalog yazarken:** Aldric'in sesi kısa/alaycı, Lena'nın sesi uzun/vicdan azabı çeken. DESIGN.md Bölüm 4'e bak.
+- **Evren ScriptableObject'leri oluştururken:** DESIGN.md Bölüm 2'deki evren kimliklerini ve restoran bağlantılarını referans al.
 
 ---
 
-*Son güncelleme: Platform stratejisi eklendi (Steam → PS5 → Xbox). New Input System zorunlu hale getirildi. IPlatformService katmanı eklendi. Cloud save entegrasyonu eklendi. UI controller navigasyonu tüm ekranlara eklendi. ResolutionManager eklendi. Faz 7-8 Steam ve konsol çıkış hazırlıkları eklendi.*
+_Son güncelleme: Kamera sistemi (keşif/savaş/restoran), grid otomatik oluşturma, BG3 aynı mekân savaş geçişi, initiative zar sistemi, hareket bedava + aksiyon kart için, kart havuzu (ortak + sınıf kısıtlaması + 6 kart limit + cooldown), portal tek ekran hazırlık, yemek pişirme timing mini-game, restoran aşçıdan patrona evrimi, keşif modu (Aldric kontrol + takip sistemi + gamepad desteği), envanter erişim kuralları eklendi._
